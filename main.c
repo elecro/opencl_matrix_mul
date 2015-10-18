@@ -15,6 +15,52 @@ void fill_matrix(float* matrix, int width, int height, float value)
     }
 }
 
+void print_matrix(float* A, int width, int height)
+{
+    for (int y = 0; y < height; y++)
+    {
+        for (int x = 0; x < width; x++)
+        {
+            printf("%.2f ", A[y * width + x]);
+        }
+        printf("\n");
+    }
+}
+
+float* matrix_mul(float* A, float* B, int width, int height)
+{
+    float* result = (float*)malloc(sizeof(float) * width * height);
+
+    for (int i = 0; i < width * height; i++)
+    {
+        int x = i % width;
+        int y = i / width;
+        float value = 0;
+
+        for (int j = 0; j < width; j++)
+        {
+            value += A[y * width + j] * B[j * width + x];
+        }
+
+        result[i] = value;
+    }
+
+    return result;
+}
+
+int matrix_equals(float* A, float* B, int length)
+{
+    for (int i = 0; i < length; i++)
+    {
+        if (A[i] != B[i])
+        {
+            return 0;
+        }
+    }
+
+    return 1;
+}
+
 char* read_file(char* filename)
 {
     FILE *fp = fopen(filename, "rb");
@@ -33,7 +79,6 @@ char* read_file(char* filename)
     fclose(fp);
 
     return source;
-
 }
 
 char* query_device_info(cl_device_id device, cl_device_info value_param)
@@ -54,16 +99,33 @@ int device_is_gpu(cl_device_id device)
     return device_type == CL_DEVICE_TYPE_GPU ? 1 : 0;
 }
 
+struct size
+{
+    int width;
+    int height;
+};
+
+
 int main(int argc, char** argv)
 {
-    const int matrix_size = sizeof(float) * 10 * 10;
-    float* A = allocate_matrix(10, 10);
-    float* B = allocate_matrix(10, 10);
-    float* C = allocate_matrix(10, 10);
+    struct size matrix_A = { 16, 32 };
+    struct size matrix_B = { 16, 16 };
+    struct size matrix_C = { 16, 32 };
 
-    fill_matrix(A, 10, 10, 2);
-    fill_matrix(B, 10, 10, 2);
-    fill_matrix(C, 10, 10, 0);
+    float* A = allocate_matrix(matrix_A.width, matrix_A.height);
+    float* B = allocate_matrix(matrix_B.width, matrix_B.height);
+    float* C = allocate_matrix(matrix_C.width, matrix_C.height);
+
+    fill_matrix(A, matrix_A.width, matrix_A.height, 3);
+    fill_matrix(B, matrix_B.width, matrix_B.height, 2);
+    fill_matrix(C, matrix_C.width, matrix_C.height, 0);
+
+    printf("A: \n");
+    print_matrix(A, matrix_A.width, matrix_A.height);
+
+    printf("\nB: \n");
+    print_matrix(B, matrix_B.width, matrix_B.height);
+    printf("\n\n");
 
     cl_mem dev_A;
     cl_mem dev_B;
@@ -170,21 +232,18 @@ int main(int argc, char** argv)
             return -5;
         }
 
-        dev_A = clCreateBuffer(context, CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR, matrix_size, A, &error);
-        dev_B = clCreateBuffer(context, CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR, matrix_size, B, &error);
+        dev_A = clCreateBuffer(context, CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR, sizeof(float) * matrix_A.width * matrix_A.height, A, &error);
+        dev_B = clCreateBuffer(context, CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR, sizeof(float) * matrix_B.width * matrix_B.height, B, &error);
 
-        dev_C = clCreateBuffer(context, CL_MEM_READ_WRITE, matrix_size, NULL, &error);
+        dev_C = clCreateBuffer(context, CL_MEM_READ_WRITE, sizeof(float) * matrix_C.width * matrix_C.height, NULL, &error);
 
         // TODO: test buffer errors
-
-        int width_A = 10;
-        int height_B = 10;
 
         error = clSetKernelArg(kernel, 0, sizeof(cl_mem), (void*)&dev_A);
         error |= clSetKernelArg(kernel, 1, sizeof(cl_mem), (void*)&dev_B);
         error |= clSetKernelArg(kernel, 2, sizeof(cl_mem), (void*)&dev_C);
-        error |= clSetKernelArg(kernel, 3, sizeof(int), (void*)&width_A);
-        error |= clSetKernelArg(kernel, 4, sizeof(int), (void*)&height_B);
+        error |= clSetKernelArg(kernel, 3, sizeof(int), (void*)&matrix_A.width);
+        error |= clSetKernelArg(kernel, 4, sizeof(int), (void*)&matrix_B.height);
 
         if (error != CL_SUCCESS)
         {
@@ -193,7 +252,7 @@ int main(int argc, char** argv)
         }
 
         size_t localWorkSize[2] = { 1, 1 };
-        size_t globalWorkSize[2] = { 10, 10 };
+        size_t globalWorkSize[2] = { matrix_C.width, matrix_C.height };
 
         error = clEnqueueNDRangeKernel(queue, kernel, 2, NULL, globalWorkSize, localWorkSize, 0, NULL, NULL);
 
@@ -203,20 +262,28 @@ int main(int argc, char** argv)
             return -7;
         }
 
-        error = clEnqueueReadBuffer(queue, dev_C, CL_TRUE, 0, matrix_size, C, 0, NULL, NULL);
+        error = clEnqueueReadBuffer(queue, dev_C, CL_TRUE, 0, sizeof(float) * matrix_C.width * matrix_C.height, C, 0, NULL, NULL);
         if (error != CL_SUCCESS)
         {
             printf("Error: Unable to read result array\n");
             return -8;
         }
 
-        for (int i = 0; i < 10; i++)
+        printf("GPU result:\n");
+        print_matrix(C, matrix_C.width, matrix_C.height);
+
+        float* cpu_result = matrix_mul(A, B, matrix_C.width, matrix_C.height);
+
+        printf("\nCPU result:\n");
+        print_matrix(cpu_result, matrix_C.width, matrix_C.height);
+
+        if (matrix_equals(C, cpu_result, matrix_C.width * matrix_C.height) == 1)
         {
-            for (int j = 0; j < 10; j++)
-            {
-                printf("%.2f ", C[i * 10 + j]);
-            }
-            printf("\n");
+            printf("Matrix equals\n");
+        }
+        else
+        {
+            printf("Not equals\n");
         }
 
         clReleaseMemObject(dev_A);
