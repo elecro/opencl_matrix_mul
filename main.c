@@ -78,6 +78,7 @@ char* read_file(char* filename)
     fread(source, 1, source_size, fp);
     fclose(fp);
 
+    source[source_size] = 0;
     return source;
 }
 
