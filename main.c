@@ -1,4 +1,7 @@
 #include <stdio.h>
+#include <time.h>
+#define CL_USE_DEPRECATED_OPENCL_1_1_APIS
+#define CL_USE_DEPRECATED_OPENCL_1_2_APIS
 #include <CL/cl.h>
 
 struct size
@@ -17,6 +20,27 @@ void fill_matrix(float* matrix, int width, int height, float value)
     for (int i = 0; i < width * height; i++)
     {
         matrix[i] = value;
+    }
+}
+
+void random_matrix(float* matrix, int width, int height, int limit)
+{
+    for (int i = 0; i < width * height; i++)
+    {
+        matrix[i] = rand() % limit;
+    }
+}
+
+void increment_matrix(float* matrix, int width, int height, int limit)
+{
+    int count = 0;
+    for (int i = 0; i < width * height; i++)
+    {
+        matrix[i] = count++;
+        if (count >= limit)
+        {
+            count = 0;
+        }
     }
 }
 
@@ -107,22 +131,19 @@ int device_is_gpu(cl_device_id device)
 
 int main(int argc, char** argv)
 {
-    struct size matrix_A = { 6, 11 };
-    struct size matrix_B = { 1, 6 };
+    time_t t;
+    srand(time(&t));
+
+    struct size matrix_A = { 6, 3 };
+    struct size matrix_B = { 3, 6 };
     struct size matrix_C = { matrix_B.width, matrix_A.height };
 
-/*
-    int s = 2048;
-    struct size matrix_A = { s, s };
-    struct size matrix_B = { s, s };
-    struct size matrix_C = { s, s };
-*/
     float* A = allocate_matrix(matrix_A.width, matrix_A.height);
     float* B = allocate_matrix(matrix_B.width, matrix_B.height);
     float* C = allocate_matrix(matrix_C.width, matrix_C.height);
 
-    fill_matrix(A, matrix_A.width, matrix_A.height, 3);
-    fill_matrix(B, matrix_B.width, matrix_B.height, 2);
+    increment_matrix(A, matrix_A.width, matrix_A.height, 5);
+    random_matrix(B, matrix_B.width, matrix_B.height, 50);
     fill_matrix(C, matrix_C.width, matrix_C.height, 0);
 
     printf("A: \n");
@@ -206,11 +227,8 @@ int main(int argc, char** argv)
             return -2;
         }
 
-        char* kernel_source = read_file("matrix_mul.cl");
-
+        const char* kernel_source = read_file("matrix_mul.cl");
         cl_program program = clCreateProgramWithSource(context, 1, &kernel_source, NULL, &error);
-
-//        free(kernel_source);
 
         if (!program)
         {
