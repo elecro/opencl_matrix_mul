@@ -107,9 +107,9 @@ int device_is_gpu(cl_device_id device)
 
 int main(int argc, char** argv)
 {
-    struct size matrix_A = { 8, 16 };
-    struct size matrix_B = { 14, 8 };
-    struct size matrix_C = { 14, 16 };
+    struct size matrix_A = { 6, 11 };
+    struct size matrix_B = { 1, 6 };
+    struct size matrix_C = { matrix_B.width, matrix_A.height };
 
 /*
     int s = 2048;
@@ -132,9 +132,16 @@ int main(int argc, char** argv)
     print_matrix(B, matrix_B.width, matrix_B.height);
     printf("\n\n");
 
-    cl_mem dev_A;
-    cl_mem dev_B;
-    cl_mem dev_C;
+    if (matrix_A.width != matrix_B.height)
+    {
+        printf("Error: matrice sizes are incorrect!\n"
+               "A: (%dx%d) B: (%dx%d)\n"
+               "exiting\n",
+               matrix_A.width, matrix_A.height,
+               matrix_B.width, matrix_B.height);
+
+        return -1;
+    }
 
     // Get & select device
     cl_platform_id platform_id; // We'll support only the first platfrom for now.
@@ -237,7 +244,7 @@ int main(int argc, char** argv)
             return -5;
         }
 
-        dev_A = clCreateBuffer(context, CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR, sizeof(float) * matrix_A.width * matrix_A.height, A, &error);
+        cl_mem dev_A = clCreateBuffer(context, CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR, sizeof(float) * matrix_A.width * matrix_A.height, A, &error);
         if (error != CL_SUCCESS)
         {
             printf("Error: Unable to create matrix buffer A\n");
@@ -246,7 +253,7 @@ int main(int argc, char** argv)
             return -6;
         }
 
-        dev_B = clCreateBuffer(context, CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR, sizeof(float) * matrix_B.width * matrix_B.height, B, &error);
+        cl_mem dev_B = clCreateBuffer(context, CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR, sizeof(float) * matrix_B.width * matrix_B.height, B, &error);
         if (error != CL_SUCCESS)
         {
             printf("Error: Unable to create matrix buffer B\n");
@@ -255,7 +262,7 @@ int main(int argc, char** argv)
             return -6;
         }
 
-        dev_C = clCreateBuffer(context, CL_MEM_READ_WRITE, sizeof(float) * matrix_C.width * matrix_C.height, NULL, &error);
+        cl_mem dev_C = clCreateBuffer(context, CL_MEM_READ_WRITE, sizeof(float) * matrix_C.width * matrix_C.height, NULL, &error);
         if (error != CL_SUCCESS)
         {
             printf("Error: Unable to create matrix buffer C\n");
