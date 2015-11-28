@@ -74,6 +74,15 @@ GpuOperations::GpuOperations(void)
     : m_deviceId(selectDevice())
     , m_context(createContext())
     , m_queue(createCommandQueue(m_context.get()))
+    , m_program(buildProgram(m_context.get(), "matrix_mul.cl"))
+{
+}
+
+GpuOperations::GpuOperations(std::string kernelFile)
+    : m_deviceId(selectDevice())
+    , m_context(createContext())
+    , m_queue(createCommandQueue(m_context.get()))
+    , m_program(buildProgram(m_context.get(), kernelFile))
 {
 }
 
@@ -84,8 +93,7 @@ Matrix GpuOperations::multiply(const Matrix& lhs, const Matrix& rhs) const
     const int dataSize = sizeof(float) * width * height;
 
     // Prepare kernel
-    CleanUp<cl_program> program = buildProgram(m_context.get(), "matrix_mul.cl");
-    CleanUp<cl_kernel> kernel = createKernel(m_context.get(), program.get(), "matrix_mul");
+    CleanUp<cl_kernel> kernel = createKernel(m_context.get(), m_program.get(), "matrix_mul");
 
     // Prepare kernel arguments
     CleanUp<cl_mem> dev_A = uploadBuffer(m_context.get(), lhs.dataSize(), lhs.data());
@@ -248,6 +256,7 @@ cl_device_id GpuOperations::selectDevice(void)
 // Transposed Gpu Operations
 
 TransposedGpuOperations::TransposedGpuOperations(void)
+    : GpuOperations("matrix_mul_transposed.cl")
 {
 }
 
@@ -258,9 +267,8 @@ Matrix TransposedGpuOperations::multiply(const Matrix& lhs, const Matrix& rhs) c
     const int dataSize = sizeof(float) * width * height;
 
     // Prepare kernel
-    CleanUp<cl_program> program = buildProgram(m_context.get(), "matrix_mul_transposed.cl");
-    CleanUp<cl_kernel> kernel = createKernel(m_context.get(), program.get(), "matrix_mul");
-    CleanUp<cl_kernel> transposeKernel = createKernel(m_context.get(), program.get(), "matrix_transpose");
+    CleanUp<cl_kernel> kernel = createKernel(m_context.get(), m_program.get(), "matrix_mul");
+    CleanUp<cl_kernel> transposeKernel = createKernel(m_context.get(), m_program.get(), "matrix_transpose");
 
     // Prepare kernel arguments
     CleanUp<cl_mem> dev_A = uploadBuffer(m_context.get(), lhs.dataSize(), lhs.data());
@@ -324,4 +332,10 @@ Matrix TransposedGpuOperations::multiply(const Matrix& lhs, const Matrix& rhs) c
     }
 
     return Matrix(width, height, data);
+}
+
+// Dot GPU Operations
+DotGpuOperations::DotGpuOperations (void)
+    : GpuOperations("matrix_mul_dot.cl")
+{
 }

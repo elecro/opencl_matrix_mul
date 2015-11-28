@@ -32,6 +32,7 @@ public:
     virtual Matrix multiply(const Matrix& lhs, const Matrix& rhs) const;
 
 protected:
+    GpuOperations(std::string kernelFile);
     cl_context createContext(void) const;
     cl_command_queue createCommandQueue(cl_context context) const;
     cl_program buildProgram(cl_context context, const std::string& filename) const;
@@ -42,6 +43,7 @@ protected:
 
     CleanUp<cl_context> m_context;
     CleanUp<cl_command_queue> m_queue;
+    CleanUp<cl_program> m_program;
 };
 
 class TransposedGpuOperations : public GpuOperations
@@ -50,6 +52,12 @@ public:
     TransposedGpuOperations(void);
 
     virtual Matrix multiply(const Matrix& lhs, const Matrix& rhs) const;
+};
+
+class DotGpuOperations : public GpuOperations
+{
+public:
+    DotGpuOperations(void);
 };
 
 #endif // _OPERATIONS_HPP
