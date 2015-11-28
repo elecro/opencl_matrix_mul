@@ -11,6 +11,7 @@ struct Measurement
 {
     double cpu;
     double gpu;
+    double transposed;
 };
 
 static Measurement measureMultiply(Matrix& lhs, Matrix& rhs)
@@ -23,24 +24,55 @@ static Measurement measureMultiply(Matrix& lhs, Matrix& rhs)
     Matrix gpuMatrix = gpu->multiply(lhs, rhs);
     steady_clock::time_point gpuEnd = std::chrono::steady_clock::now();
 
+    delete gpu;
+
+    Operations* transposed = new TransposedGpuOperations();
+    steady_clock::time_point transposedStart = steady_clock::now();
+    Matrix transposedMatrix = transposed->multiply(lhs, rhs);
+    steady_clock::time_point transposedEnd = steady_clock::now();
+
+    delete transposed;
+
     Operations* cpu = new CpuOperations();
 
     steady_clock::time_point cpuStart = steady_clock::now();
     Matrix cpuMatrix = cpu->multiply(lhs, rhs);
     steady_clock::time_point cpuEnd = steady_clock::now();
 
+    duration<double> transposedSpan = duration_cast<std::chrono::duration<double> >(transposedEnd - transposedStart);
     duration<double> cpuSpan = duration_cast<std::chrono::duration<double> >(cpuEnd - cpuStart);
     duration<double> gpuSpan = duration_cast<std::chrono::duration<double> >(gpuEnd - gpuStart);
 
     if (cpuMatrix != gpuMatrix)
     {
-        printf("Matrix mismatch\n");
+        printf("GPU Matrix mismatch\n");
     }
 
-    delete gpu;
+    if (cpuMatrix != transposedMatrix)
+    {
+        printf("Transposed Matrix mismatch\n");
+
+        print(transposedMatrix);
+        printf("\nCPU Matrix:\n");
+        print(cpuMatrix);
+        printf("\n\n");
+
+        printf("\n\nLHS\n");
+        print(lhs);
+        printf("\nRHS\n");
+        print(rhs);
+        printf("\n");
+
+        printf("\nT RHS\n");
+        Matrix t = rhs.transpose();
+        print(t);
+        printf("\n");
+
+    }
+
     delete cpu;
 
-    return { cpuSpan.count(), gpuSpan.count() };
+    return { cpuSpan.count(), gpuSpan.count(), transposedSpan.count() };
 }
 
 int main()
@@ -60,9 +92,10 @@ int main()
 
         printf("%dx%d CPU: %.4f \n", width, height, result.cpu);
         printf("%dx%d GPU: %.4f \n", width, height, result.gpu);
+        printf("%dx%d TPU: %.4f \n", width, height, result.transposed);
         //fprintf(stderr, "%d;%d;%d;%.4f;%.4f;\n", i, width, height, result.cpu * 1000, result.gpu * 1000);
         //printf("%dx%d GPU: %.4f \n", width, height, result.gpu);
-
+        printf("\n");
         resultSet.push_back(result);
     }
 

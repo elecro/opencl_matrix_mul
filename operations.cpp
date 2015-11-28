@@ -243,3 +243,85 @@ cl_device_id GpuOperations::selectDevice(void)
 
     return selected_device;
 }
+
+
+// Transposed Gpu Operations
+
+TransposedGpuOperations::TransposedGpuOperations(void)
+{
+}
+
+Matrix TransposedGpuOperations::multiply(const Matrix& lhs, const Matrix& rhs) const
+{
+    const int width = rhs.width();
+    const int height = lhs.height();
+    const int dataSize = sizeof(float) * width * height;
+
+    // Prepare kernel
+    CleanUp<cl_program> program = buildProgram(m_context.get(), "matrix_mul_transposed.cl");
+    CleanUp<cl_kernel> kernel = createKernel(m_context.get(), program.get(), "matrix_mul");
+    CleanUp<cl_kernel> transposeKernel = createKernel(m_context.get(), program.get(), "matrix_transpose");
+
+    // Prepare kernel arguments
+    CleanUp<cl_mem> dev_A = uploadBuffer(m_context.get(), lhs.dataSize(), lhs.data());
+    CleanUp<cl_mem> dev_B = uploadBuffer(m_context.get(), rhs.dataSize(), rhs.data());
+    // Transposed dst matrix
+    CleanUp<cl_mem> dev_T = uploadBuffer(m_context.get(), rhs.dataSize(), NULL);
+    CleanUp<cl_mem> dev_C = uploadBuffer(m_context.get(), dataSize, NULL);
+
+    {
+        const cl_mem memObjs[] = { dev_B.get(), dev_T.get(), 0 };
+        int argNdx = 0;
+        for (int i = 0; memObjs[i] != 0; i++, argNdx++)
+        {
+            if (clSetKernelArg(transposeKernel.get(), argNdx, sizeof(cl_mem), (void*)&memObjs[i]) != CL_SUCCESS)
+            {
+                throw "kernel arg set fail";
+            }
+        }
+    }
+
+    size_t transposeWorkSize[2] = { (size_t)rhs.width(), (size_t)rhs.height() };
+    cl_event transposeEvent;
+    cl_int error = clEnqueueNDRangeKernel(m_queue.get(), transposeKernel.get(), 2, NULL, transposeWorkSize, NULL, 0, NULL, &transposeEvent);
+    if (error != CL_SUCCESS)
+    {
+        throw "transpose job enqueue fail";
+    }
+
+    {
+        const cl_mem memObjs[] = { dev_A.get(), dev_T.get(), dev_C.get(), 0 };
+        int argNdx = 0;
+        for (int i = 0; memObjs[i] != 0; i++, argNdx++)
+        {
+            if (clSetKernelArg(kernel.get(), argNdx, sizeof(cl_mem), (void*)&memObjs[i]) != CL_SUCCESS)
+            {
+                throw "kernel arg set fail";
+            }
+        }
+
+        const int sizes[] = { lhs.width(), rhs.width(), 0 };
+        for (int i = 0; sizes[i] != 0; i++, argNdx++)
+        {
+            if (clSetKernelArg(kernel.get(), argNdx, sizeof(int), (void*)&sizes[i]) != CL_SUCCESS)
+            {
+                throw "kernel arg set fail";
+            }
+        }
+    }
+
+    size_t globalWorkSize[2] = { (size_t)width, (size_t)height };
+    if (clEnqueueNDRangeKernel(m_queue.get(), kernel.get(), 2, NULL, globalWorkSize, NULL, 1, &transposeEvent, NULL) != CL_SUCCESS)
+    {
+        throw "job enqueue fail";
+    }
+
+    std::vector<float> data(width * height);
+
+    if (clEnqueueReadBuffer(m_queue.get(), dev_C.get(), CL_TRUE, 0, dataSize, &data[0], 0, NULL, NULL) != CL_SUCCESS)
+    {
+        throw "readback fail";
+    }
+
+    return Matrix(width, height, data);
+}

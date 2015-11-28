@@ -23,6 +23,9 @@ public:
 
 class GpuOperations : public Operations
 {
+private:
+    cl_device_id m_deviceId;
+
 public:
     GpuOperations(void);
 
@@ -37,10 +40,16 @@ protected:
 
     static cl_device_id selectDevice(void);
 
-private:
-    cl_device_id m_deviceId;
     CleanUp<cl_context> m_context;
     CleanUp<cl_command_queue> m_queue;
+};
+
+class TransposedGpuOperations : public GpuOperations
+{
+public:
+    TransposedGpuOperations(void);
+
+    virtual Matrix multiply(const Matrix& lhs, const Matrix& rhs) const;
 };
 
 #endif // _OPERATIONS_HPP
