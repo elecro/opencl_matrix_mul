@@ -1,4 +1,5 @@
 #include "matrix.hpp"
+#include "operations.hpp"
 
 #include <cstdio>
 #include <cstdlib>
