@@ -3,10 +3,7 @@ OBJS  := $(patsubst %.cpp, %.o, $(SRC))
 
 CXXFLAGS := -g -std=c++11
 
-all: matrix_mul
-
-matrix_mul: main.c matrix_mul.cl
-	$(CC) -o $@ main.c -lOpenCL
+all: cpp_matrix_mul
 
 cpp_matrix_mul: $(OBJS)
 	$(CXX) -o $@ $(addprefix out/, $(OBJS)) -lOpenCL
@@ -18,4 +15,4 @@ out:
 	mkdir out
 
 clean:
-	rm -f matrix_mul
+	rm -f cpp_matrix_mul
