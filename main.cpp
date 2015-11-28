@@ -13,6 +13,7 @@ struct Measurement
     double gpu;
     double transposed;
     double dot;
+    double float4;
 };
 
 static Matrix measure(Operations& op, Matrix& lhs, Matrix& rhs, double* spentTime)
@@ -44,6 +45,10 @@ static Measurement measureMultiply(Matrix& lhs, Matrix& rhs)
     Operations* dot = new DotGpuOperations();
     Matrix dotMatrix = measure(*dot, lhs, rhs, &result.dot);
     delete dot;
+
+    Operations* float4 = new Float4GpuOperations();
+    Matrix float4Matrix = measure(*float4, lhs, rhs, &result.float4);
+    delete float4;
 
     Operations* cpu = new CpuOperations();
     Matrix cpuMatrix = measure(*cpu, lhs, rhs, &result.cpu);
@@ -113,8 +118,7 @@ int main()
         printf("%dx%d GPU: %.4f \n", width, height, result.gpu);
         printf("%dx%d TPU: %.4f \n", width, height, result.transposed);
         printf("%dx%d DPU: %.4f \n", width, height, result.dot);
-        //fprintf(stderr, "%d;%d;%d;%.4f;%.4f;\n", i, width, height, result.cpu * 1000, result.gpu * 1000);
-        //printf("%dx%d GPU: %.4f \n", width, height, result.gpu);
+        printf("%dx%d 4PU: %.4f \n", width, height, result.float4);
         printf("\n");
         resultSet.push_back(result);
     }

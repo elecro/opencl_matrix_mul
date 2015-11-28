@@ -60,4 +60,12 @@ public:
     DotGpuOperations(void);
 };
 
+class Float4GpuOperations : public GpuOperations
+{
+public:
+    Float4GpuOperations(void)
+        : GpuOperations("matrix_mul_float4.cl")
+    {}
+};
+
 #endif // _OPERATIONS_HPP
