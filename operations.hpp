@@ -68,4 +68,12 @@ public:
     {}
 };
 
+class ConstantGpuOperations : public GpuOperations
+{
+public:
+    ConstantGpuOperations(void)
+        : GpuOperations("matrix_mul_constant.cl")
+    {}
+};
+
 #endif // _OPERATIONS_HPP
