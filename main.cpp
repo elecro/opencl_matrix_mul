@@ -4,6 +4,7 @@
 #include <cstdio>
 #include <cstdlib>
 #include <ctime>
+#include <cstring>
 
 #include <chrono>
 
@@ -96,31 +97,71 @@ static Measurement measureMultiply(Matrix& lhs, Matrix& rhs)
         printf("\n");
     }
 
+    if (cpuMatrix != float4Matrix)
+    {
+        printf("Float4 Matrix mismatch\n");
+    }
+
     return result;
 }
 
-int main()
+int main(int argc, char** argv)
 {
-    srand (time(NULL));
-
-    std::vector<Measurement> resultSet;
-
-    for (int i = 1; i < 2; i++)
+    if (argc < 2)
     {
-        int width = 3 * i;
-        int height = 2 * i;
-        Matrix lhs = Matrix::random(width, height, 20);
-        Matrix rhs = lhs.transpose();
+        printf("Usage: %s <matrix size> [count]\n", argv[0]);
+        return -1;
+    }
 
+    int count = 1;
+    if (argc > 2)
+    {
+        count = (int)strtol(argv[2], NULL, 10) ? : 1;
+    }
+
+    bool useCSVOutput = false;
+    for (int i = 1; i < argc; i++)
+    {
+        if (strcmp("--csv", argv[i]) == 0)
+        {
+            useCSVOutput = true;
+            break;
+        }
+    }
+
+    int size = atoi(argv[1]);
+    srand (1);
+//    srand (time(NULL));
+
+    int width = size;
+    int height = size;
+    Matrix lhs = Matrix::random(width, height, 4);
+    Matrix rhs = lhs.transpose();
+
+    while (count-- > 0)
+    {
         Measurement result = measureMultiply(lhs, rhs);
 
-        printf("%dx%d CPU: %.4f \n", width, height, result.cpu);
-        printf("%dx%d GPU: %.4f \n", width, height, result.gpu);
-        printf("%dx%d TPU: %.4f \n", width, height, result.transposed);
-        printf("%dx%d DPU: %.4f \n", width, height, result.dot);
-        printf("%dx%d 4PU: %.4f \n", width, height, result.float4);
-        printf("\n");
-        resultSet.push_back(result);
+        if (useCSVOutput)
+        {
+            printf("%d;%d; %.4f;%.4f;%.4f;%.4f;%.4f\n",
+                    width,
+                    height,
+                    result.cpu,
+                    result.gpu,
+                    result.transposed,
+                    result.dot,
+                    result.float4);
+        }
+        else
+        {
+            printf("%dx%d CPU: %.4f \n", width, height, result.cpu);
+            printf("%dx%d GPU: %.4f \n", width, height, result.gpu);
+            printf("%dx%d TPU: %.4f \n", width, height, result.transposed);
+            printf("%dx%d DPU: %.4f \n", width, height, result.dot);
+            printf("%dx%d 4PU: %.4f \n", width, height, result.float4);
+            printf("\n");
+        }
     }
 
     return 0;
