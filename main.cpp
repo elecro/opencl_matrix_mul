@@ -149,7 +149,7 @@ int main(int argc, char** argv)
 
         if (useCSVOutput)
         {
-            printf("%d;%d; %.4f;%.4f;%.4f;%.4f;%.4f\n",
+            printf("%d;%d; %.6f;%.6f;%.6f;%.6f;%.6f;%.6f\n",
                     width,
                     height,
                     result.cpu,
@@ -161,12 +161,12 @@ int main(int argc, char** argv)
         }
         else
         {
-            printf("%dx%d CPU: %.4f \n", width, height, result.cpu);
-            printf("%dx%d GPU: %.4f \n", width, height, result.gpu);
-            printf("%dx%d TPU: %.4f \n", width, height, result.transposed);
-            printf("%dx%d DPU: %.4f \n", width, height, result.dot);
-            printf("%dx%d 4PU: %.4f \n", width, height, result.float4);
-            printf("%dx%d   1: %.4f \n", width, height, result.constant);
+            printf("%dx%d CPU: %.6f \n", width, height, result.cpu);
+            printf("%dx%d GPU: %.6f \n", width, height, result.gpu);
+            printf("%dx%d TPU: %.6f \n", width, height, result.transposed);
+            printf("%dx%d DPU: %.6f \n", width, height, result.dot);
+            printf("%dx%d 4PU: %.6f \n", width, height, result.float4);
+            printf("%dx%d   1: %.6f \n", width, height, result.constant);
             printf("\n");
         }
     }
