@@ -57,7 +57,10 @@ public:
 class DotGpuOperations : public GpuOperations
 {
 public:
-    DotGpuOperations(void);
+    DotGpuOperations(void)
+        : GpuOperations("matrix_mul_dot.cl")
+    {}
+
 };
 
 class Float4GpuOperations : public GpuOperations

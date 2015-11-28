@@ -333,9 +333,3 @@ Matrix TransposedGpuOperations::multiply(const Matrix& lhs, const Matrix& rhs) c
 
     return Matrix(width, height, data);
 }
-
-// Dot GPU Operations
-DotGpuOperations::DotGpuOperations (void)
-    : GpuOperations("matrix_mul_dot.cl")
-{
-}
